@@ -1,0 +1,38 @@
+
+
+contador de ciclos y de us
+
+uint32_t cyclesElapsed = 0;
+uint32_t msElapsed = 0, usElapsed = 0;
+
+
+
+// Configura el contador de ciclos con el clock de la EDU-CIAA NXP
+   cyclesCounterConfig(EDU_CIAA_NXP_CLOCK_SPEED);
+
+// Resetea el contador de ciclos
+cyclesCounterReset();
+   
+// Guarda en una variable los ciclos leidos
+cyclesElapsed = cyclesCounterRead();
+
+// Convierte el valor de ciclos en micro segundos
+usElapsed = cyclesCounterToUs(cyclesElapsed);
+
+
+// Convierte el valor de ciclos en mili segundos
+msElapsed = cyclesCounterToMs(cyclesElapsed);
+
+// Imprime por pantalla el valor de los ciclos y los mili segundos transcurridos.
+stdioPrintf(UART_USB, "Los ciclos en esperar 141 ms son: %d. En mili segundos (aprox) %d\n\n\r", cyclesElapsed, msElapsed);
+
+
+
+
+FIFO Rx con mas de 16 bytes.
+Como funciona interrupcion de uart
+
+EEPROM o como guardar en ROM, sapi no tiene
+
+Memoria flash, sapi no tiene
+
