@@ -1,16 +1,16 @@
 
 #include "main.h"
 
-
 // Global variables
-static const tick_t tickTimeMS = 1;
-static rtc_t rtc;
-static communicationManager_t communicationManager;
-static uint16_t tickCounter;
+static const tick_t tickTimeMS = 1; // Sample tick Time in milliseconds
+static uint16_t samplesSentCount;
+//static rtc_t rtc; // Real Time Clock
+//static communicationManager_t comMngr; // Comm Manager
+//static uint16_t tickCounter;
+
 // flags
-static bool_t bEnableSendParams;
 static bool_t bRdyToSendParams;
-static bool_t bUpdateRtc;
+//static bool_t bUpdateRtc;
 
 
 // ---- Main function (entry point) ---- //
@@ -20,24 +20,24 @@ int main(void)
 	Board_Init();
 
 	// Communication initialization
-	comunicationManagerConfig(&communicationManager);
+	comunicationManagerConfig();
 
 	// ADC enable
 	adcConfig( ADC_ENABLE );
 
 	// Real time clock
 	// ToDo: Store and fetch data in non-volatile memmory
-	rtc.year = 2021;
-	rtc.month = 2;
-	rtc.mday = 3;
-	rtc.wday = 4;
-	rtc.hour = 13;
-	rtc.min = 36;
-	rtc.sec= 0;
+	//rtc.year = 2021;
+	//rtc.month = 2;
+	//rtc.mday = 3;
+	//rtc.wday = 4;
+	//rtc.hour = 13;
+	//rtc.min = 36;
+	//rtc.sec= 0;
 
-	rtcInit();
+	//rtcInit();
 
-	rtcWrite( &rtc ); // Establecer fecha y hora
+	//rtcWrite( &rtc ); // Establecer fecha y hora
 
 	// cycle counter to get times
 	cyclesCounterConfig(EDU_CIAA_NXP_CLOCK_SPEED);
@@ -47,19 +47,17 @@ int main(void)
 	tickInit(1);
 	tickCallbackSet(onTickUpdate,NULL);
 
-	bEnableSendParams = FALSE;
+	uartWriteString(UART_USB,"Begining! ... \r\n");
+	bEnableSendParams = TRUE;
 	bRdyToSendParams = FALSE;
 	// initialize times and needed values
 	// V, I, T.
+	setCurrentParams(220.0,5.0,5.0);
 
 	// Main loop
 	while (1) {
-
-		// Resets cycle counter
-		cyclesCounterReset();
-
 		// Update Rtc if needed
-		if(bUpdateRtc == TRUE) rtcWrite(&rtc);
+		//if(bUpdateRtc == TRUE) rtcWrite(&rtc);
 
 		// checks if messages pending and parse them
 		handleMessages();
@@ -70,24 +68,21 @@ int main(void)
 			sendLineParameters();
 			bRdyToSendParams = FALSE;
 		}
-
-		// Homemade Watchdog
-		float timeElapsedLoop = cyclesCounterToUs(cyclesCounterRead());
-		if(timeElapsedLoop >= tickTimeMS*1000)
-		{
-			LOG_WARNING("Loop time elapsed is grater than tick time interval");
-		}
 	}
    
    return 0;
 }
 
+
+
 void onTickUpdate(void* UNUSED)
 {
-	float timeStartEvent = cyclesCounterToUs(cyclesCounterRead()); // Homemade Watchdog
+	float timeStartTick = cyclesCounterToUs(cyclesCounterRead()); // Homemade Watchdog
 
 
 	// read values
+	uint16_t v = getVoltage(adcRead(CH1));
+	uint16_t i = getCurrent(adcRead(CH2));
 
 	// store values (circular buffer?)
 
@@ -97,27 +92,28 @@ void onTickUpdate(void* UNUSED)
 	// if 1 seg, raise bRdyToSendParams;
 
 
-
-
-
-
-
-
-
-
-
-	if(tickRead() == 500)
+	if(tickRead() == 1000)
 	{
 		// calculate rest of params
 
-		bRdyToSendParams == TRUE;
+		bRdyToSendParams = TRUE;
 		tickWrite(0);
 	}
 
+	// Send raw samples
+	if (bEnableSendSamples){
+		if(samplesSentCount >= N_SAMPLES_TO_SEND){
+			samplesSentCount = 0;
+			bEnableSendSamples = FALSE;
+		} else {
+			samplesSentCount++;
+			sendSample(samplesSentCount,N_SAMPLES_TO_SEND,v,i);
+		}
+	}
+
 	// Homemade TICK Watchdog
-	float timeFinishEvent = cyclesCounterToUs(cyclesCounterRead());
-	float timeElapsedEvent = timeFinishEvent - timeStartEvent;
-	if(timeElapsedEvent >= tickTimeMS*1000)
+	float timeElapsedTick = cyclesCounterToUs(cyclesCounterRead()) - timeStartTick;
+	if(timeElapsedTick >= tickTimeMS*1000)
 	{
 		LOG_WARNING("Tick time elapsed is grater than tick time interval");
 	}

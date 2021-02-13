@@ -5,10 +5,11 @@
 #include <sapi.h>
 
 
-// return ascii from int value
+// return ascii char* from int value
 char* itoa(int value, char* result, int base);
 
-// LOGGING
+
+// LOGGING MACROS
 #define LOG_INFO(x) uartWriteString(UART_USB,"INFO:"); uartWriteString(UART_USB,x); uartWriteString(UART_USB,"\r\n")
 #define LOG_WARNING(x) uartWriteString(UART_USB,"WARNING!:"); uartWriteString(UART_USB,x); uartWriteString(UART_USB,"\r\n")
 #define LOG_CRITICAL(x) uartWriteString(UART_USB,"CRITICAL!:"); uartWriteString(UART_USB,x); uartWriteString(UART_USB,"\r\n")

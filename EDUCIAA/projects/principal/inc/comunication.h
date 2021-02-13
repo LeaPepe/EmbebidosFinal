@@ -4,9 +4,10 @@
 #include <stdint.h>
 #include <sapi.h>
 #include <ring_buffer.h>
+#include "digitalization.h"
 #include "utils.h"
 
-
+// --- DEFINITIONS --- //
 #define UART_BUFFER_TX_SIZE 64
 #define UART_BUFFER_RX_SIZE 64
 #define CMD_BUFFER_SIZE 32
@@ -14,25 +15,37 @@
 #define UART_COM UART_232
 #define UART_DEBUG UART_USB
 
-#define CHAR_CMD_TERMINATOR '\n'
+#define N_SAMPLES_TO_SEND 40
 
-// extern global variables
-static rtc_t rtc;
-static bool_t updateRtc;
+// --- GLOBAL FLAGS --- //
+static bool_t bEnableSendParams;
+static bool_t bEnableSendSamples;
 
+// --- EXTERN GLOBAL VARIABLES --- //
+extern params_t currentParams;
+
+//static bool_t bUpdateRtc;
+
+
+
+// -- DATA STRUCTURES --- //
 
 // Serial Communication commands Identifications
 typedef enum commandsID {
-	CMD_HELLO = 0,				// send hello to server
-	CMD_RESET_KWH, 				// Reset energy logging
-	CMD_REQ_PARAMS_ON, 			// Set line parameters sending every second to server
-	CMD_REQ_PARAMS_OFF,			// Clear
-	CMD_UPDATE_RTC,				// Update RTC with CMDID,YEAR,MONTH,MONTHDAY,WEEKDAY,HOUR,MINUTE,SECOND
-	CMD_REQ_CYCLE_SAMPLES,		// Send cycle sample to server
-	CMD_SENDING_PARAMS,			// ID for parameters data line   CMDID,VRMS,IRMS,COSHPHI,KWHCOUNT,KWHRESETTIME
-	CMD_SENDING_CYCLE_SAMPLE, 	// ID for cycle sample send  CMDID,INDEX,TOTALINDICES,V,I,DELTAT
-	CMD_TERMINATOR = '\n'
+	CMD_HELLO = 'H',				// send hello to server
+	CMD_ACK = 'A',					// Acknowledge
+	CMD_RESET_KWH = 'E', 				// Reset energy logging
+	CMD_REQ_PARAMS_ON = 'N', 			// Set line parameters sending every second to server
+	CMD_REQ_PARAMS_OFF = 'F',			// Clear
+	CMD_UPDATE_RTC = 'C',				// Update RTC with CMDID,YEAR,MONTH,MONTHDAY,WEEKDAY,HOUR,MINUTE,SECOND
+	CMD_REQ_CYCLE_SAMPLES = 'R',		// Send cycle sample to server
+	CMD_SENDING_PARAMS = 'P',			// ID for parameters data line   CMDID,VRMS,IRMS,COSHPHI,KWHCOUNT,KWHRESETTIME
+	CMD_SENDING_CYCLE_SAMPLE = 'S', 	// ID for cycle sample send  CMDID,INDEX,TOTALINDICES,V,I,DELTAT
+	CHAR_RETURN_CARRY  = '\r',
+	CHAR_TERMINATOR = '\n',
+	CHAR_END_STRING = '\0'
 } commandsID_t;
+
 
 // All communications variables used
 typedef struct{
@@ -43,38 +56,31 @@ typedef struct{
 
 	// Command buffer to parse
 	uint8_t cmdBuffer[CMD_BUFFER_SIZE];
-	uint16_t cmdSize;
+	volatile uint16_t cmdSize;
 
 	// Flags
 	bool_t bPendingMsg;
 }communicationManager_t;
 
-static communicationManager_t communicationManager;
 
-// Comunication functions
-void comunicationManagerConfig(communicationManager_t* ComMngr);
-void handleMessages();
-void parseCommand(const uint8_t* cmd,const uint8_t size);
-void sendData(const uint8_t* data,const uint16_t dataSize);
-void sendByte(const uint8_t c);
+
+// --- FUNCTIONS DEFINITIONS --- //
 
 // UART Callbacks
-void onTxFreeCallback(void* unused);
-void onRxCallback(void* unused);
-void onRxBufferOverflow();
+void onTxFree(void* unused);
+void onRx(void* unused);
+void onRxOverflow();
 
 
-
-
-
-
-// FLAGS
-static bool_t bEnableSendParams;
-static bool_t bUpdateRtc;
-
+// Comunication functions
+void comunicationManagerConfig();
+void handleMessages();
+void parseCommand(const uint8_t* cmd,const uint8_t size);
+void sendData(const void* data,const uint16_t dataSize);
+void sendByte(const uint8_t c);
 
 // FUNCTIONS
-
+void sendSample(const uint16_t count,const uint16_t maxSamples,const float v,const float i);
 void sendLineParameters();
 void clearEnergy();
 
