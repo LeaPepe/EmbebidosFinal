@@ -1,16 +1,10 @@
-
 #include "main.h"
 
 // Global variables
 static const tick_t tickTimeMS = 1; // Sample tick Time in milliseconds
-static uint16_t samplesSentCount;
-//static rtc_t rtc; // Real Time Clock
-//static communicationManager_t comMngr; // Comm Manager
-//static uint16_t tickCounter;
-
 // flags
 static bool_t bRdyToSendParams;
-//static bool_t bUpdateRtc;
+
 
 
 // ---- Main function (entry point) ---- //
@@ -25,44 +19,30 @@ int main(void)
 	// ADC enable
 	adcConfig( ADC_ENABLE );
 
-	// Real time clock
-	// ToDo: Store and fetch data in non-volatile memmory
-	//rtc.year = 2021;
-	//rtc.month = 2;
-	//rtc.mday = 3;
-	//rtc.wday = 4;
-	//rtc.hour = 13;
-	//rtc.min = 36;
-	//rtc.sec= 0;
-
-	//rtcInit();
-
-	//rtcWrite( &rtc ); // Establecer fecha y hora
-
-	// cycle counter to get times
+	// Time initialization
 	cyclesCounterConfig(EDU_CIAA_NXP_CLOCK_SPEED);
 	cyclesCounterReset();
 
-	// Tick Interruption configuration 1ms
+
+	// Tick 1ms initialization
 	tickInit(1);
 	tickCallbackSet(onTickUpdate,NULL);
 
+	// Initialize some parameters
 	uartWriteString(UART_USB,"Begining! ... \r\n");
 	bEnableSendParams = TRUE;
 	bRdyToSendParams = FALSE;
-	// initialize times and needed values
-	// V, I, T.
-	setCurrentParams(220.0,5.0,5.0);
 
+
+	// initialize times and needed values
+	setCurrentParams(0.5,0.5,0.5);
+	sampleCount = 0;
 	// Main loop
 	while (1) {
-		// Update Rtc if needed
-		//if(bUpdateRtc == TRUE) rtcWrite(&rtc);
-
-		// checks if messages pending and parse them
+		// handle pending command messages (if any)
 		handleMessages();
 
-		// Send Line params to webserver
+		// Send line data to webserver (every 1 second)
 		if(bRdyToSendParams == TRUE && bEnableSendParams == TRUE)
 		{
 			sendLineParameters();
@@ -74,44 +54,53 @@ int main(void)
 }
 
 
-
+// -- TICK CALLBACK -- //
 void onTickUpdate(void* UNUSED)
 {
+	// Tick watchdog time start
 	float timeStartTick = cyclesCounterToUs(cyclesCounterRead()); // Homemade Watchdog
 
 
 	// read values
-	uint16_t v = getVoltage(adcRead(CH1));
-	uint16_t i = getCurrent(adcRead(CH2));
-
-	// store values (circular buffer?)
+	sample_t sample;
+	sample.v = getVoltage(adcRead(CH1));
+	sample.i = getCurrent(adcRead(CH2));
 
 	// calculate on the fly params
+	currentParams.Vrms += sample.v * sample.v;
+	currentParams.Irms += sample.i * sample.i;
 
-
-	// if 1 seg, raise bRdyToSendParams;
-
-
-	if(tickRead() == 1000)
+	// each second tasks
+	if(tickRead() % 1000 == 0)
 	{
 		// calculate rest of params
+		currentParams.Vrms /= 1000;
+		currentParams.Irms /= 1000;
 
+		computedParams.Vrms = sqrt(currentParams.Vrms);
+		computedParams.Irms = sqrt(currentParams.Irms);
+		computedParams.CosPhi = 3;
+
+		// raise flag
 		bRdyToSendParams = TRUE;
-		tickWrite(0);
+
+		// restart values
+		currentParams.Vrms = 0.2;
+		currentParams.Irms = 0.3;
 	}
 
-	// Send raw samples
+	// Send samples each tick (if requested)
 	if (bEnableSendSamples){
-		if(samplesSentCount >= N_SAMPLES_TO_SEND){
-			samplesSentCount = 0;
+		if(sampleCount >= N_SAMPLES_TO_SEND){
+			sampleCount = 0;
 			bEnableSendSamples = FALSE;
 		} else {
-			samplesSentCount++;
-			sendSample(samplesSentCount,N_SAMPLES_TO_SEND,v,i);
+			sendSample(sample,sampleCount);
+			sampleCount++;
 		}
 	}
 
-	// Homemade TICK Watchdog
+	// Tick watchdog check
 	float timeElapsedTick = cyclesCounterToUs(cyclesCounterRead()) - timeStartTick;
 	if(timeElapsedTick >= tickTimeMS*1000)
 	{

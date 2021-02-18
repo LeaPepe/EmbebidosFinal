@@ -10,8 +10,8 @@ char* itoa(int value, char* result, int base);
 
 
 // LOGGING MACROS
-#define LOG_INFO(x) uartWriteString(UART_USB,"INFO:"); uartWriteString(UART_USB,x); uartWriteString(UART_USB,"\r\n")
-#define LOG_WARNING(x) uartWriteString(UART_USB,"WARNING!:"); uartWriteString(UART_USB,x); uartWriteString(UART_USB,"\r\n")
+#define LOG_INFO(x) 	uartWriteString(UART_USB,"INFO:"); 		uartWriteString(UART_USB,x); uartWriteString(UART_USB,"\r\n")
+#define LOG_WARNING(x) 	uartWriteString(UART_USB,"WARNING!:"); 	uartWriteString(UART_USB,x); uartWriteString(UART_USB,"\r\n")
 #define LOG_CRITICAL(x) uartWriteString(UART_USB,"CRITICAL!:"); uartWriteString(UART_USB,x); uartWriteString(UART_USB,"\r\n")
 
 

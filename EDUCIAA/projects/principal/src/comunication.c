@@ -74,9 +74,9 @@ void onTxFree(void* unused){
 
 // --- PUBLIC FUNCTIONS --- //
 
-// Send any kind of data to UART buffer, enables callback
-// data, the data container
-// dataSize, the size IN BYTES of the data
+// Send any kind of data to UART buffer, enables Tx callback
+// @param data		: ptr to data
+// @param dataSize	: size of data in Bytes
 void sendData(const void* data,const uint16_t dataSize)
 {
 	// cast to uint8_t buffer array
@@ -84,7 +84,7 @@ void sendData(const void* data,const uint16_t dataSize)
 
 	// insert to uart buffer
 	for(uint16_t i = 0; i < dataSize;i++){
-		RingBuffer_Insert(&comMngr.TxRBuffer, &(dataBuffer[i]));
+		RingBuffer_Insert(&comMngr.TxRBuffer, dataBuffer++);
 	}
 
 	// Enable callback interrupt
@@ -92,9 +92,10 @@ void sendData(const void* data,const uint16_t dataSize)
 	uartSetPendingInterrupt(UART_COM);
 }
 
-// Send a byte to UART buffer, enables callback
+// Send single byte to UART buffer, enables Tx callback
 void sendByte(const uint8_t c)
 {
+	// insert byte to UART buffer
 	RingBuffer_Insert(&comMngr.TxRBuffer, &c);
 
 	// Enable callback interrupt
@@ -103,7 +104,7 @@ void sendByte(const uint8_t c)
 }
 
 
-// Handles the UART Rx buffer
+// Checks for pending messages on the UART Rx buffer and parses the message
 void handleMessages()
 {
 	uint8_t c;
@@ -114,23 +115,26 @@ void handleMessages()
 	//While Rx buffer not empty
 	while(RingBuffer_IsEmpty(&comMngr.RxRBuffer) == FALSE)
 	{
-
+		// get byte
 		RingBuffer_Pop(&comMngr.RxRBuffer,&c);
 
-		// if string terminator, parse the command
+		// if \n: parse the command
 		if(c == CHAR_TERMINATOR)
 		{
+			// append terminator
 			comMngr.cmdBuffer[comMngr.cmdSize] = CHAR_TERMINATOR;
 			comMngr.cmdSize++;
+			// parse command
 			parseCommand(comMngr.cmdBuffer, comMngr.cmdSize);
 			comMngr.cmdSize = 0;
-
-		// else append it to the command buffer
+		// else append char to the command buffer
 		} else {
-			if (comMngr.cmdSize >= CMD_BUFFER_SIZE){ // check overflow
+			// check overflow
+			if (comMngr.cmdSize >= CMD_BUFFER_SIZE){
 				LOG_WARNING("CMD buffer overflow");
 				break;
 			}
+			// append char
 			comMngr.cmdBuffer[comMngr.cmdSize] = c;
 			comMngr.cmdSize++;
 		}
@@ -138,7 +142,7 @@ void handleMessages()
 }
 
 
-// parses the command line found in the UART buffer
+// Parses the full command line
 void parseCommand(const uint8_t* cmd,const uint8_t size)
 {
 	if (size == 0) return;
@@ -187,26 +191,25 @@ void parseCommand(const uint8_t* cmd,const uint8_t size)
 
 // Sends one sample to the webServer
 // [commandID, count, maxSample, v, i, \n]
-// [S, 12, 128, 220.0, 10.0]
-void sendSample(const uint16_t count,const uint16_t maxSamples,const float v,const float i)
+// Eg.:[S, 12, 128, 220.0, 10.0]
+void sendSample(const sample_t s,const uint16_t count)
 {
 	// Identifier
 	sendByte(CMD_SENDING_CYCLE_SAMPLE);
 	// sample number
-	sendData(&count,sizeof(uint16_t));
-	// max sample number
-	sendData(&maxSamples,sizeof(uint16_t));
+	sendData(&(count),sizeof(uint16_t));
 	// v
-	sendData(&v,sizeof(float));
+	sendData(&(s.v),sizeof(float));
 	// i
-	sendData(&i,sizeof(float));
+	sendData(&(s.i),sizeof(float));
 	// terminator
 	sendByte(CHAR_TERMINATOR);
 }
 
-// Send the calculated parameters to the webServer
+
+// Sends the calculated parameters to the webServer each second
 // [commandID, Vrms, Irms, CosPhi, \n]
-// [P, 220.0, 5.0, -7.0]
+// Eg.:[P, 220.0, 5.0, -7.0]
 void sendLineParameters()
 {
 	// Identifier

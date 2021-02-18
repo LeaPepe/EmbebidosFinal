@@ -20,12 +20,20 @@ typedef struct lineParams{
 	float CosPhi;
 }params_t;
 
+uint16_t sampleCount; // used when sending samples to server
+
+typedef struct sampleParams{
+	float v;
+	float i;
+}sample_t;
+
 // --- FUNCTIONS DEFINITIONS --- //
 
 // get true values from analog values
 float getVoltage(uint16_t analogValue);
 float getCurrent(uint16_t analogValue);
 void setCurrentParams(const float v, const float i, const float cosPhi);
+void clearCurrentParams();
 
 
 #endif /* PHASOR_DIGITALIZATION_H_ */

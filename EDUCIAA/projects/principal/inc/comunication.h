@@ -22,7 +22,7 @@ static bool_t bEnableSendParams;
 static bool_t bEnableSendSamples;
 
 // --- EXTERN GLOBAL VARIABLES --- //
-extern params_t currentParams;
+extern params_t currentParams,computedParams;
 
 //static bool_t bUpdateRtc;
 
@@ -80,7 +80,7 @@ void sendData(const void* data,const uint16_t dataSize);
 void sendByte(const uint8_t c);
 
 // FUNCTIONS
-void sendSample(const uint16_t count,const uint16_t maxSamples,const float v,const float i);
+void sendSample(const sample_t s,const uint16_t count);
 void sendLineParameters();
 void clearEnergy();
 

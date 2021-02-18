@@ -2,6 +2,7 @@
 #define __PHASOR_MAIN_H__
 
 #include <stdint.h>
+#include <math.h>
 #include <sapi.h>
 
 
