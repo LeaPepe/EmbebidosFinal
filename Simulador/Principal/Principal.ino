@@ -1,20 +1,23 @@
 #include <Wire.h>
 #include <Adafruit_MCP4725.h>
-#define DEBUG_TIME
+
+// Debug options
+//#define DEBUG_TIME
 //#define DEBUG_VALUES
-//#define DEBUG_CALCULATIONS
+#define DEBUG_CALCULATIONS
 
 
 // ONE PHASE PARAMS
-const float LINE_FREQ = 10;
+const float LINE_FREQ = 50;
 const float LINE_FREQ_ANG_US_DEG = 2 * PI * LINE_FREQ / 1000000;
 
 //Global variables
-#ifdef DEBUG
+#ifdef DEBUG_TIME
 unsigned long startTime, stopTime;
 double t;
-#endif //debug
 
+#endif //debug
+int cyclesCount;
 // DAC ADDR
 Adafruit_MCP4725 DAC1;
 Adafruit_MCP4725 DAC2;
@@ -33,68 +36,48 @@ void setup()
 // LOOP
 void loop()
 {
+  // To display cycle time
 #ifdef DEBUG_TIME
   startTime = micros();
 #endif //DEBUG_TIME
-  float sine = sin(LINE_FREQ_ANG_US_DEG * micros());
-  int v = 2048 + 2000 * sine ;
+
+  // Voltage
+  float sineV = sin(LINE_FREQ_ANG_US_DEG * micros()); // Sine(2pift)
+  int v = (int)(2048.0f + 2000.0f * sineV) ; // to logic value
   DAC2.setVoltage(v, false);
-  int i = 2048 + (int)((2000.0 / 1024.0) * analogRead(A0)) * sin(LINE_FREQ_ANG_US_DEG * (micros() - 50 * (analogRead(A1) - 512)));
+
+  // Current (analog reads)
+  int phaseOffset =  10 * (analogRead(A1) - 512); // A1 for time offset in ms
+  float sineA = sin(LINE_FREQ_ANG_US_DEG * (micros() - phaseOffset)); // Sine(2pif(t-offset))
+  int i = 2048 + (int)((2000.0f / 1024.0f) * analogRead(A0) * sineA); // A0 for amplitude
   DAC1.setVoltage(i, false);
 
+  // To display cycle time
 #ifdef DEBUG_TIME
-  stopTime = micros();
-  Serial.print("Cycle (ms): ");
-  Serial.println((stopTime - startTime) / 1000.0);
+   stopTime = micros();
+   Serial.print("Cycle (ms): ");
+   Serial.println((stopTime - startTime) / 1000.0);
 #endif //DEBUG_TIME
 
+   // To display real time samples
 #ifdef DEBUG_VALUES
-  Serial.print(i);
-  Serial.print(',');
-  Serial.println(v);
+   Serial.print(i);
+   Serial.print(',');
+   Serial.println(v);
 #endif //DEBUG_VALUES
 
+  // To display teoric values Vrms,Irms,Phi
 #ifdef DEBUG_CALCULATIONS
-//ToDo: Vrms,Irms,CosPhi calculations
-  Serial.print(i);
-  Serial.print(',');
-  Serial.println(v);
+  if (cyclesCount++ % 5000 == 0) {
+    float vrms = ((((float)(4048 - 2048)) * 318.4f) / 2048.0f) * 0.707f;
+    float irms = ((((float)((2048 +(2000.0f / 1024.0f) * analogRead(A0)) - 2048)) * 15.0f) / 2048.0f) * 0.707f;
+    Serial.print("Ve = ");
+    Serial.print(vrms);
+    Serial.print(", Ie = ");
+    Serial.print(irms);
+    Serial.print(", Phi = ");
+    float phi = (float)phaseOffset * 360.0f / 20000.0f;
+    Serial.println(phi);
+  }
 #endif //DEBUG_CALCULATIONS
-}
-
-
-uint8_t isinTable8[] = {
-  0, 4, 9, 13, 18, 22, 27, 31, 35, 40, 44,
-  49, 53, 57, 62, 66, 70, 75, 79, 83, 87,
-  91, 96, 100, 104, 108, 112, 116, 120, 124, 128,
-
-  131, 135, 139, 143, 146, 150, 153, 157, 160, 164,
-  167, 171, 174, 177, 180, 183, 186, 190, 192, 195,
-  198, 201, 204, 206, 209, 211, 214, 216, 219, 221,
-
-  223, 225, 227, 229, 231, 233, 235, 236, 238, 240,
-  241, 243, 244, 245, 246, 247, 248, 249, 250, 251,
-  252, 253, 253, 254, 254, 254, 255, 255, 255, 255,
-};
-
-int isin(int x)
-{
-  boolean pos = true;  // positive - keeps an eye on the sign.
-  uint8_t idx;
-  // remove next 6 lines for fastestl!
-  if (x < 0)
-  {
-    x = -x;
-    pos = !pos;
-  }
-  if (x >= 360) x %= 360;
-  if (x > 180)
-  {
-    idx = x - 180;
-    pos = !pos;
-  }
-  else idx = x;
-  if (idx > 90) idx = 180 - idx;
-  if (pos) return isinTable8[idx] / 2 ;
-  return -(isinTable8[idx] / 2);
 }

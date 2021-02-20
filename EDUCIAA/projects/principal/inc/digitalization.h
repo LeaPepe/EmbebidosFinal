@@ -6,7 +6,7 @@
 
 // --- DEFINITIONS --- //
 
-#define ANALOG_MAX_VOLTAGE 315.0f
+#define ANALOG_MAX_VOLTAGE 318.4f
 #define ANALOG_MAX_CURRENT 15.0f
 
 #define ANALOG_PRESITION 10

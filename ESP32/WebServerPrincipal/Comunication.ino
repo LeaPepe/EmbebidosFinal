@@ -41,7 +41,7 @@ typedef enum commandsID {
 
 void requestSamples()
 {
-  Serial2.print(CMD_REQ_CYCLE_SAMPLES);
+  Serial2.print(char(CMD_REQ_CYCLE_SAMPLES));
   Serial2.print("\r\n");
 }
 
@@ -67,10 +67,17 @@ void handleUart()
     cmdBuffer[cmdBufferSize] = c;
     cmdBufferSize++;
     // if terminator, parse the command
-    if (c == CHAR_TERMINATOR) {
-      parseCmd();
-      cmdBufferSize = 0; // clear string
-    }
+    
+    if (c == CHAR_RETURN_CARRY){
+      c = (char)Serial2.read();
+      if (c == CHAR_TERMINATOR){
+        parseCmd();
+        cmdBufferSize = 0; // clear string
+      } else {
+        cmdBuffer[cmdBufferSize] = c;
+        cmdBufferSize++;
+      }
+    } 
   }
 }
 
@@ -78,9 +85,6 @@ void parseCmd()
 {
   if (cmdBufferSize <= 1) return;
   //ToDo:Validate data
-  
-
-  Serial.println("");
   switch (cmdBuffer[0])
   {
     
@@ -100,6 +104,7 @@ void parseCmd()
       break;
     default:
       Serial.println("command ID Unknown!");
+      Serial.println(cmdBuffer);
       break;
   }
 }
@@ -113,14 +118,16 @@ void parseSampleCmd()
     return;
   }
   uint16_t index = *((uint16_t*)(cmdBuffer + 1));
+  Serial.print(index);
   samples.v[index] = *((float*)(cmdBuffer + 3));
   samples.i[index] = *((float*)(cmdBuffer + 7));
   docSamples["v"][index] = samples.v[index];
   docSamples["i"][index] = samples.i[index];
   docSamples["t"][index] = index;
-  if(index == N_SAMPLES_TO_SEND - 1)
+  if(index == N_SAMPLES_TO_SEND - 2)
   {
-    stringSamples == "";
+    
+    stringSamples = "";
     serializeJson(docSamples, stringSamples);
     Serial.println(stringSamples);
   }

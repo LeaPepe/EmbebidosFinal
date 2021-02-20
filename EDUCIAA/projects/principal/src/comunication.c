@@ -30,6 +30,7 @@ void comunicationManagerConfig(){
 
 	// Hello to server
 	sendByte(CMD_HELLO);
+	sendByte(CHAR_RETURN_CARRY);
 	sendByte(CHAR_TERMINATOR);
 }
 
@@ -153,7 +154,8 @@ void parseCommand(const uint8_t* cmd,const uint8_t size)
 		LOG_INFO("Server says hello!");
 		// send acknowledge
 		sendByte(CMD_ACK);
-		sendData("\r\n",2);
+		sendByte(CHAR_RETURN_CARRY);
+		sendByte(CHAR_TERMINATOR);
 		break;
 	case CMD_ACK:
 		LOG_INFO("Server acknowledge!");
@@ -203,6 +205,7 @@ void sendSample(const sample_t s,const uint16_t count)
 	// i
 	sendData(&(s.i),sizeof(float));
 	// terminator
+	sendByte(CHAR_RETURN_CARRY);
 	sendByte(CHAR_TERMINATOR);
 }
 
@@ -215,13 +218,14 @@ void sendLineParameters()
 	// Identifier
 	sendByte(CMD_SENDING_PARAMS);
 	// Vrms
-	sendData(&currentParams.Vrms,sizeof(float));
+	sendData(&computedParams.Vrms,sizeof(float));
 	// Irms
-	sendData(&currentParams.Irms,sizeof(float));
+	sendData(&computedParams.Irms,sizeof(float));
 	// Cos Phi
-	sendData(&currentParams.CosPhi,sizeof(float));
+	sendData(&computedParams.CosPhi,sizeof(float));
 
 	// terminator
+	sendByte(CHAR_RETURN_CARRY);
 	sendByte(CHAR_TERMINATOR);
 }
 

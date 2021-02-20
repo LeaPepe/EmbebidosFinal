@@ -180,25 +180,26 @@ var chartPows = new Highcharts.Chart({
 		tooltip: { valueSuffix: ' VA'}}],}
 );
 
-//ChartSamples
+//ChartS
 var chartS = new Highcharts.Chart({
 	chart:{
 		renderTo:'chart-samples'},
 	title:{
-		text: 'Raw data' ,
+		text: 'Samples' ,
 		align: 'left'},
 	subtitle: {
-		text: 'Instant voltage and current',
+		text: 'sps',
 		align: 'left'},
 	plotOptions:{
 		line:{
 			animation: false,
 			dataLabels: { enabled: true }}},
-	xAxis:{
-		title:{ text: 'Time [ms]' }},
+	xAxis:{accessibility: {
+            rangeDescription: 'Range: 0 to 39'
+        }},
 	yAxis: [{ // Primary yAxis
 		labels: {
-			format: '{value} V',
+			format: '{value} A',
 			style: {
 				color: '#2b908f'}},
 		title: {
@@ -206,31 +207,31 @@ var chartS = new Highcharts.Chart({
 			style: {
 				color: '#2b908f'}},
 		opposite: true},
-	{ // Tertiary yAxis
+	{ // Secondary yAxis
 		gridLineWidth: 0,
 		title: {
-			text: 'Current',
+			text: 'Reactive',
 			style: {
-				color: '#7798BF'}},
-		labels: {
-			format: '{value} A',
+				color: '#90ee7e'}},
+		labels:{
+			format: '{value} VAR',
 			style: {
-				color: '#2b908f'}},
-			opposite: true}],
+				color: '#90ee7e'}}}],
 	credits: { enabled: false },
 	series: [{ // first
-		name: 'Voltage',
+		name: 'Active Power',
 		type: 'spline',
 		yAxis: 1,
 		data: [],
 		color: '#2b908f',
-		tooltip: { valueSuffix: ' V'}},
-	{ // Third
-		name: 'Current',
+		tooltip: { valueSuffix: ' W'}},
+	{ // Second
+		name: 'Rective Power',
 		type: 'spline',
 		data: [],
-		color: '#7798BF',
-		tooltip: { valueSuffix: ' A'}}],}
+		color: '#90ee7e',
+		marker: {enabled: false},
+		tooltip: {valueSuffix: ' VAR'}}],}
 );
 
 
@@ -274,21 +275,17 @@ setInterval(function ( ) {
     if (this.readyState == 4 && this.status == 200) {
 	  var obj = JSON.parse(this.responseText);
 	  // ToDo:parsear los datos
-	  var t = obj.t
-	  var v = obj.v
-	  var i = obj.i
-	  
-	  for(let j = 0; i < 40;i++)
-	  {
-	    if(chartLP.series[0].data.length > 40) {
-			chartLP.series[0].addPoint([t[j], v[j]], true, true, true);
-			chartLP.series[1].addPoint([t[j], i[j]], true, true, true);
+	  chartS.series[0].setData(obj.v);
+	  chartS.series[1].setData(obj.i);
+	  /*for(let j = 0; j < 40; j++){
+		if(chartS.series[0].data.length > 40){
+			chartS.series[0].addPoint([obj.t[j], obj.v[j]], true, true, true);
+			chartS.series[1].addPoint([obj.t[j], obj.i[j]], true, true, true);
 		} else {
-			chartLP.series[0].addPoint([t[j], v[j]], true, false, true);
-			chartLP.series[1].addPoint([t[j], i[j]], true, false, true);
+			chartS.series[0].addPoint([obj.t[j], obj.v[j]], true, false, true);
+			chartS.series[1].addPoint([obj.t[j], obj.i[j]], true, false, true);
 		}
-	  }
-
+	  }*/
     }
   };
   xhttp.open("GET", "/samples", true);

@@ -7,7 +7,7 @@ static bool_t bRdyToSendParams;
 
 
 
-// ---- Main function (entry point) ---- //
+// --- MAIN FUNCTION (entry point) --- //
 int main(void)
 {
 	// Board initialization board.h
@@ -31,16 +31,23 @@ int main(void)
 	// Initialize some parameters
 	uartWriteString(UART_USB,"Begining! ... \r\n");
 	bEnableSendParams = TRUE;
+	bEnableSendSamples = FALSE;
 	bRdyToSendParams = FALSE;
 
 
 	// initialize times and needed values
-	setCurrentParams(0.5,0.5,0.5);
+	clearCurrentParams();
 	sampleCount = 0;
-	// Main loop
+
+
+
+
+	// --- MAIN LOOP --- //
 	while (1) {
+
 		// handle pending command messages (if any)
 		handleMessages();
+
 
 		// Send line data to webserver (every 1 second)
 		if(bRdyToSendParams == TRUE && bEnableSendParams == TRUE)
@@ -54,7 +61,7 @@ int main(void)
 }
 
 
-// -- TICK CALLBACK -- //
+// --- 1MS TICK CALLBACK --- //
 void onTickUpdate(void* UNUSED)
 {
 	// Tick watchdog time start
@@ -63,8 +70,10 @@ void onTickUpdate(void* UNUSED)
 
 	// read values
 	sample_t sample;
-	sample.v = getVoltage(adcRead(CH1));
-	sample.i = getCurrent(adcRead(CH2));
+	uint16_t logicV = adcRead(CH1);
+	uint16_t logicI = adcRead(CH2);
+	sample.v = getVoltage(logicV);
+	sample.i = getCurrent(logicI);
 
 	// calculate on the fly params
 	currentParams.Vrms += sample.v * sample.v;
@@ -79,18 +88,19 @@ void onTickUpdate(void* UNUSED)
 
 		computedParams.Vrms = sqrt(currentParams.Vrms);
 		computedParams.Irms = sqrt(currentParams.Irms);
-		computedParams.CosPhi = 3;
+		computedParams.CosPhi = 0.0f;
 
-		// raise flag
+		// raise flag to send
 		bRdyToSendParams = TRUE;
 
 		// restart values
-		currentParams.Vrms = 0.2;
-		currentParams.Irms = 0.3;
+		currentParams.Vrms = 0.0;
+		currentParams.Irms = 0.0;
+		currentParams.CosPhi = 0.0;
 	}
 
-	// Send samples each tick (if requested)
-	if (bEnableSendSamples){
+	// Send raw samples each tick (if requested)
+	if (bEnableSendSamples == TRUE){
 		if(sampleCount >= N_SAMPLES_TO_SEND){
 			sampleCount = 0;
 			bEnableSendSamples = FALSE;

@@ -19,7 +19,7 @@
 
 // --- GLOBAL FLAGS --- //
 static bool_t bEnableSendParams;
-static bool_t bEnableSendSamples;
+volatile bool_t bEnableSendSamples;
 
 // --- EXTERN GLOBAL VARIABLES --- //
 extern params_t currentParams,computedParams;
