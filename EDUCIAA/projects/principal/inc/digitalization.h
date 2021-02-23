@@ -17,7 +17,7 @@
 typedef struct lineParams{
 	float Vrms;
 	float Irms;
-	float CosPhi;
+	float Phi;
 }params_t;
 
 uint16_t sampleCount; // used when sending samples to server

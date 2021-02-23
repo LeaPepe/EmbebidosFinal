@@ -17,7 +17,7 @@ typedef struct{
 typedef struct{
   float Vrms;
   float Irms;
-  float CosPhi;
+  float Phi;
 }params_t;
 
 
@@ -124,7 +124,7 @@ void parseSampleCmd()
   docSamples["v"][index] = samples.v[index];
   docSamples["i"][index] = samples.i[index];
   docSamples["t"][index] = index;
-  if(index == N_SAMPLES_TO_SEND - 2)
+  if(index == N_SAMPLES_TO_SEND - 1)
   {
     
     stringSamples = "";
@@ -145,10 +145,10 @@ void parseParamsCmd()
   
   parameters.Vrms = *((float*)(cmdBuffer + 1));
   parameters.Irms = *((float*)(cmdBuffer + 5));
-  parameters.CosPhi = *((float*)(cmdBuffer + 9));
+  parameters.Phi = *((float*)(cmdBuffer + 9));
   docParams["vrms"] = parameters.Vrms;
   docParams["irms"] = parameters.Irms;
-  docParams["cosphi"] = parameters.CosPhi;
+  docParams["phi"] = parameters.Phi;
   stringParams = "";
   serializeJson(docParams, stringParams);
 }

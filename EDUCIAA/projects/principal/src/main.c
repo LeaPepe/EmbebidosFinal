@@ -2,8 +2,12 @@
 
 // Global variables
 static const tick_t tickTimeMS = 1; // Sample tick Time in milliseconds
+
+extern peakData_t peakData;
+extern communicationManager_t ComMngr;
+
 // flags
-static bool_t bRdyToSendParams;
+bool_t bRdyToSendParams;
 
 
 
@@ -14,7 +18,7 @@ int main(void)
 	Board_Init();
 
 	// Communication initialization
-	comunicationManagerConfig();
+	ComMngr_Init(&ComMngr);
 
 	// ADC enable
 	adcConfig( ADC_ENABLE );
@@ -29,10 +33,12 @@ int main(void)
 	tickCallbackSet(onTickUpdate,NULL);
 
 	// Initialize some parameters
-	uartWriteString(UART_USB,"Begining! ... \r\n");
+	uartWriteString(UART_DEBUG,"Begining! ... \r\n");
 	bEnableSendParams = TRUE;
 	bEnableSendSamples = FALSE;
 	bRdyToSendParams = FALSE;
+
+	PeakDetector_Init(&peakData);
 
 
 	// initialize times and needed values
@@ -46,13 +52,13 @@ int main(void)
 	while (1) {
 
 		// handle pending command messages (if any)
-		handleMessages();
+		ComMngr_HandleMessages(&ComMngr);
 
 
 		// Send line data to webserver (every 1 second)
 		if(bRdyToSendParams == TRUE && bEnableSendParams == TRUE)
 		{
-			sendLineParameters();
+			ComMngr_SendLineParams(&ComMngr);
 			bRdyToSendParams = FALSE;
 		}
 	}
@@ -79,6 +85,8 @@ void onTickUpdate(void* UNUSED)
 	currentParams.Vrms += sample.v * sample.v;
 	currentParams.Irms += sample.i * sample.i;
 
+	PeakDetector_InputData(&peakData,  &sample);
+
 	// each second tasks
 	if(tickRead() % 1000 == 0)
 	{
@@ -88,15 +96,16 @@ void onTickUpdate(void* UNUSED)
 
 		computedParams.Vrms = sqrt(currentParams.Vrms);
 		computedParams.Irms = sqrt(currentParams.Irms);
-		computedParams.CosPhi = 0.0f;
+		computedParams.Phi = PeakDetector_getAvgPhi(&peakData);
 
 		// raise flag to send
 		bRdyToSendParams = TRUE;
 
 		// restart values
+		PeakDetector_Reset(&peakData);
 		currentParams.Vrms = 0.0;
 		currentParams.Irms = 0.0;
-		currentParams.CosPhi = 0.0;
+		currentParams.Phi = 0.0;
 	}
 
 	// Send raw samples each tick (if requested)
@@ -105,16 +114,17 @@ void onTickUpdate(void* UNUSED)
 			sampleCount = 0;
 			bEnableSendSamples = FALSE;
 		} else {
-			sendSample(sample,sampleCount);
+			ComMngr_SendSample(&ComMngr, sample, sampleCount);
 			sampleCount++;
 		}
 	}
 
 	// Tick watchdog check
 	float timeElapsedTick = cyclesCounterToUs(cyclesCounterRead()) - timeStartTick;
+
 	if(timeElapsedTick >= tickTimeMS*1000)
 	{
-		LOG_WARNING("Tick time elapsed is grater than tick time interval");
+		LOG_WARNING("Tick callback time is grater than tick time interval");
 	}
 }
 

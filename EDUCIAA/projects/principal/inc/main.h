@@ -5,10 +5,10 @@
 #include <math.h>
 #include <sapi.h>
 
-
 #include "utils.h"
-#include "comunication.h"
 #include "digitalization.h"
+#include "ComMngr.h"
+#include "PeakDetector.h"
 
 
 void onTickUpdate(void* UNUSED);

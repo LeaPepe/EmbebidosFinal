@@ -15,16 +15,16 @@ float getCurrent(uint16_t logicValue)
 }
 
 
-void setCurrentParams(const float v, const float i, const float cosPhi)
+void setCurrentParams(const float v, const float i, const float Phi)
 {
 	currentParams.Vrms = v;
 	currentParams.Irms = i;
-	currentParams.CosPhi = cosPhi;
+	currentParams.Phi = Phi;
 }
 
 void clearCurrentParams()
 {
 	currentParams.Vrms = 0;
 	currentParams.Irms = 0;
-	currentParams.CosPhi = 0;
+	currentParams.Phi = 0;
 }

@@ -27,6 +27,7 @@
 </body>
 
 <script>
+
 //Chart Vrms, Irms, CosPhi
 var chartLP = new Highcharts.Chart({
 	chart:{ renderTo:'chart-lineparams'},
@@ -52,7 +53,10 @@ var chartLP = new Highcharts.Chart({
             style: {
                 color: '#8dd3c7'
             }
-        }
+        },
+        opposite: true,
+		min: 0,
+		max: 12
     }, { // Secondary yAxis
         gridLineWidth: 0,
 		title: {
@@ -66,24 +70,28 @@ var chartLP = new Highcharts.Chart({
             style: {
                 color: '#bebada'
             }
-        }
+        },
+		min: 0,
+		max: 240
     }, { // Terciary yAxis
         gridLineWidth: 0,
 		title: {
-            text: 'Cos phi',
+            text: 'Phi',
             style: {
                 color: '#ffffb3'
             }
         },
         labels: {
-            format: '{value} °',
+            format: '{value} deg',
             style: {
                 color: '#ffffb3'
             }
         },
-        opposite: true
+        opposite: true,
+		min: -120,
+		max: 120
     }],
-	credits: { enabled: false },
+	//credits: { enabled: false },
 	series: [{ // first
 		name: 'Vrms',
 		yAxis: 1,
@@ -91,96 +99,113 @@ var chartLP = new Highcharts.Chart({
 		color: '#bebada',
 		tooltip: { valueSuffix: ' V'}},
 	{ // Second
-		name: 'Irms',
+		name: 'Phi',
 		yAxis: 2,
 		data: [],
-		color: '#8dd3c7',
-		tooltip: { valueSuffix: ' A'}},
-	{ // Third
-		name: 'Cos phi',
-		data: [],
 		color: '#ffffb3',
-		tooltip: { valueSuffix: ' °'},
-		dashStyle: 'shortdot'}],
+		tooltip: { valueSuffix: ' deg'},
+		dashStyle: 'shortdot'},
+	{ // Third
+		name: 'Current',
+		yAxis: 0,
+		data: [],
+		color: '#8dd3c7',
+		tooltip: { valueSuffix: ' A'}}],
 	tooltip: {
         shared: true
     }}
 );
 
-//ChartPowers
 var chartPows = new Highcharts.Chart({
-	chart:{
-		renderTo:'chart-powers'},
+	chart:{ renderTo:'chart-powers'},
 	title:{
-		text: 'Power triangle' ,
+		text: 'Power Triangle' ,
 		align: 'left'},
 	subtitle: {
-		text: 'Active Power, Reactive Power, Aparent Power',
+		text: 'Active, Reactive, Aparent',
 		align: 'left'},
-	plotOptions:{
-		line:{
-			animation: false,
-			dataLabels: { enabled: true }}},
-	xAxis:{
+	xAxis:[{
 		title:{ text: 'Time [H:M:S]' },
 		type: 'datetime',
-		dateTimeLabelFormats: { second: '%H:%M:%S' }},
+		dateTimeLabelFormats: { second: '%H:%M:%S' }}],
 	yAxis: [{ // Primary yAxis
-		labels: {
-			format: '{value} A',
-			style: {
-				color: '#2b908f'}},
+        labels: {
+            format: '{value} VAR',
+            style: {
+                color: '#8dd3c7'
+            }
+        },
+        title: {
+            text: 'Reactive',
+            style: {
+                color: '#8dd3c7'
+            }
+			
+        },
+        opposite: true,
+		min: -2800,
+		max: 2800
+    }, { // Secondary yAxis
+        gridLineWidth: 0,
 		title: {
-			text: 'Current',
-			style: {
-				color: '#2b908f'}},
-		opposite: true},
-	{ // Secondary yAxis
-		gridLineWidth: 0,
+            text: 'Active',
+            style: {
+                color: '#bebada'
+            }
+        },
+        labels: {
+            format: '{value} W',
+            style: {
+                color: '#bebada'
+            }
+        },
+		min: -2800,
+		max: 2800
+    }, { // Terciary yAxis
+        gridLineWidth: 0,
 		title: {
-			text: 'Reactive',
-			style: {
-				color: '#90ee7e'}},
-		labels:{
-			format: '{value} VAR',
-			style: {
-				color: '#90ee7e'}}},
-	{ // Tertiary yAxis
-		gridLineWidth: 0,
-		title: {
-			text: 'Aparent',
-			style: {
-				color: '#7798BF'}},
-		labels: {
-			format: '{value} VA',
-			style: {
-				color: '#2b908f'}},
-			opposite: true}],
-	credits: { enabled: false },
+            text: 'Aparent',
+            style: {
+                color: '#ffffb3'
+            }
+        },
+        labels: {
+            format: '{value} VA',
+            style: {
+                color: '#ffffb3'
+            }
+        },
+        opposite: true,
+		min: -2800,
+		max: 2800
+    }],
+	//credits: { enabled: false },
 	series: [{ // first
-		name: 'Active Power',
-		type: 'spline',
+		name: 'Active',
 		yAxis: 1,
 		data: [],
-		color: '#2b908f',
+		color: '#bebada',
 		tooltip: { valueSuffix: ' W'}},
 	{ // Second
-		name: 'Rective Power',
-		type: 'spline',
+		name: 'Aparent',
 		yAxis: 2,
 		data: [],
-		color: '#90ee7e',
-		marker: {enabled: false},
-		tooltip: {valueSuffix: ' VAR'}},
+		color: '#ffffb3',
+		tooltip: { valueSuffix: ' VA'}},
 	{ // Third
-		name: 'Aparent Power',
-		type: 'spline',
+		name: 'Reactive',
+		yAxis: 0,
 		data: [],
-		color: '#7798BF',
-		tooltip: { valueSuffix: ' VA'}}],}
+		color: '#8dd3c7',
+		tooltip: { valueSuffix: ' VAR'}
+	}],
+	tooltip: {
+        shared: true
+    }}
 );
 
-//ChartS
+
+//Chart Samples
 var chartS = new Highcharts.Chart({
 	chart:{
 		renderTo:'chart-samples'},
@@ -188,12 +213,12 @@ var chartS = new Highcharts.Chart({
 		text: 'Samples' ,
 		align: 'left'},
 	subtitle: {
-		text: 'sps',
+		text: 'Raw line data v(t) and i(t)',
 		align: 'left'},
 	plotOptions:{
 		line:{
 			animation: false,
-			dataLabels: { enabled: true }}},
+			dataLabels: { enabled: false }}},
 	xAxis:{accessibility: {
             rangeDescription: 'Range: 0 to 39'
         }},
@@ -201,37 +226,45 @@ var chartS = new Highcharts.Chart({
 		labels: {
 			format: '{value} A',
 			style: {
-				color: '#2b908f'}},
+				color: '#90ee7e'}},
 		title: {
 			text: 'Current',
 			style: {
-				color: '#2b908f'}},
+				color: '#90ee7e'}},
+		min: -15,
+		max: 15,
 		opposite: true},
 	{ // Secondary yAxis
 		gridLineWidth: 0,
 		title: {
-			text: 'Reactive',
+			text: 'Voltage',
 			style: {
-				color: '#90ee7e'}},
+				color: '#2b908f'}},
 		labels:{
-			format: '{value} VAR',
+			format: '{value} V',
 			style: {
-				color: '#90ee7e'}}}],
+				color: '#2b908f'}},
+		min: -340,
+		max: 340}],
 	credits: { enabled: false },
 	series: [{ // first
-		name: 'Active Power',
-		type: 'spline',
+		name: 'Voltage',
+		type: 'line',
 		yAxis: 1,
 		data: [],
 		color: '#2b908f',
-		tooltip: { valueSuffix: ' W'}},
+		marker: {enabled: false},
+		tooltip: { valueSuffix: ' V'}},
 	{ // Second
-		name: 'Rective Power',
-		type: 'spline',
+		name: 'Current',
+		type: 'line',
 		data: [],
 		color: '#90ee7e',
 		marker: {enabled: false},
-		tooltip: {valueSuffix: ' VAR'}}],}
+		tooltip: {valueSuffix: ' A'}}],
+	tooltip: {
+        shared: true
+    }}
 );
 
 
@@ -242,25 +275,25 @@ setInterval(function ( ) {
     if (this.readyState == 4 && this.status == 200) {
       var t = (new Date()).getTime();
 	  var obj = JSON.parse(this.responseText);
+	  var cosphi = Math.cos(obj.phi*2*Math.PI/360);
 	  // ToDo:parsear los datos
-	  var sinphi = Math.sqrt(1.0 - (obj.cosphi* obj.cosphi));
-	  if (obj.cosphi < 0) sinphi * (-1);
+	  var sinphi = Math.sin(obj.phi*2*Math.PI/360);
 	  
       if(chartLP.series[0].data.length > 40) {
         chartLP.series[0].addPoint([t, obj.vrms], true, true, true);
-		chartLP.series[1].addPoint([t, obj.irms], true, true, true);
-		chartLP.series[2].addPoint([t, obj.cosphi], true, true, true);
+		chartLP.series[2].addPoint([t, obj.irms], true, true, true);
+		chartLP.series[1].addPoint([t, obj.phi], true, true, true);
 		
-		chartPows.series[0].addPoint([t, obj.vrms*obj.irms*obj.cosphi], true, true, true);
-		chartPows.series[1].addPoint([t,  obj.vrms*obj.irms*obj.sinphi], true, true, true);
-		chartPows.series[2].addPoint([t, obj.vrms*obj.irms], true, true, true);
+		chartPows.series[0].addPoint([t, obj.vrms*obj.irms*cosphi], true, true, true);
+		chartPows.series[2].addPoint([t,  obj.vrms*obj.irms*sinphi], true, true, true);
+		chartPows.series[1].addPoint([t, obj.vrms*obj.irms], true, true, true);
       } else {
         chartLP.series[0].addPoint([t, obj.vrms], true, false, true);
-		chartLP.series[1].addPoint([t, obj.irms], true, false, true);
-		chartLP.series[2].addPoint([t, obj.cosphi], true, false, true);
-		chartPows.series[0].addPoint([t, obj.vrms*obj.irms*obj.cosphi], true, false, true);
-		chartPows.series[1].addPoint([t,  obj.vrms*obj.irms*obj.sinphi], true, false, true);
-		chartPows.series[2].addPoint([t, obj.vrms*obj.irms], true, false, true);
+		chartLP.series[2].addPoint([t, obj.irms], true, false, true);
+		chartLP.series[1].addPoint([t, obj.phi], true, false, true);
+		chartPows.series[0].addPoint([t, obj.vrms*obj.irms*cosphi], true, false, true);
+		chartPows.series[2].addPoint([t,  obj.vrms*obj.irms*sinphi], true, false, true);
+		chartPows.series[1].addPoint([t, obj.vrms*obj.irms], true, false, true);
       }
     }
   };

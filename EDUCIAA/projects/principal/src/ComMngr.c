@@ -1,24 +1,25 @@
-#include "comunication.h"
+#include "ComMngr.h"
 
-// GLOBAL VARIABLES
-//static rtc_t rtc;
-//static bool_t updateRtc;
+// Global Flags
+communicationManager_t ComMngr;
 
-static communicationManager_t comMngr;
+// Global Flags
+bool_t bEnableSendParams;
+volatile bool_t bEnableSendSamples;
 
 // -- COMUNICATION INITIALIZATIONS -- //
 
 // Configures all the parameters to the communication manager
 // Tx,Rx Circular buffers, command buffer, UART callbacks
-void comunicationManagerConfig(){
+void ComMngr_Init(communicationManager_t* cm){
 
 	// Buffers init
-	RingBuffer_Init(&comMngr.TxRBuffer, comMngr.TxBuffer, sizeof(uint8_t),UART_BUFFER_TX_SIZE);
-	RingBuffer_Init(&comMngr.RxRBuffer, comMngr.RxBuffer, sizeof(uint8_t),UART_BUFFER_RX_SIZE);
-	comMngr.cmdSize = 0;
+	RingBuffer_Init(&cm->TxRBuffer, cm->TxBuffer, sizeof(uint8_t),UART_BUFFER_TX_SIZE);
+	RingBuffer_Init(&cm->RxRBuffer, cm->RxBuffer, sizeof(uint8_t),UART_BUFFER_RX_SIZE);
+	cm->cmdSize = 0;
 
 	// pending message flag init
-	comMngr.bPendingMsg = FALSE;
+	cm->bPendingMsg = FALSE;
 
 	// UART init
 	uartConfig(UART_COM, 115200);   // WebServer Comunication
@@ -29,9 +30,9 @@ void comunicationManagerConfig(){
 	uartInterrupt(UART_COM, true);
 
 	// Hello to server
-	sendByte(CMD_HELLO);
-	sendByte(CHAR_RETURN_CARRY);
-	sendByte(CHAR_TERMINATOR);
+	ComMngr_SendByte(cm ,CMD_HELLO);
+	ComMngr_SendByte(cm ,CHAR_RETURN_CARRY);
+	ComMngr_SendByte(cm ,CHAR_TERMINATOR);
 }
 
 
@@ -41,15 +42,16 @@ void comunicationManagerConfig(){
 void onRx(void* unused){
 
 	// Overflow callback (Warning!)
-	if(RingBuffer_IsFull(&comMngr.RxRBuffer) == TRUE) onRxOverflow();
+	if(RingBuffer_IsFull(&ComMngr.RxRBuffer) == TRUE) onRxOverflow();
 
 	// Insert to RxBuffer
 	uint8_t c = uartRxRead(UART_COM);
-	RingBuffer_Insert(&comMngr.RxRBuffer, &c);
+	RingBuffer_Insert(&ComMngr.RxRBuffer, &c);
 
 	// Pending message enable
-	comMngr.bPendingMsg = TRUE;
+	ComMngr.bPendingMsg = TRUE;
 }
+
 
 // Overflow function callback
 // In a future, ask for more space
@@ -57,16 +59,17 @@ void onRxOverflow(){
 	LOG_WARNING("Rx buffer overflow, message overwritten!");
 }
 
+
 // On transmiter free callback function
 void onTxFree(void* unused){
-	if(RingBuffer_IsEmpty(&comMngr.TxRBuffer) == TRUE)
+	if(RingBuffer_IsEmpty(&ComMngr.TxRBuffer) == TRUE)
 	{
 		// Disable Callback Interrupt
 		uartCallbackClr(UART_COM, UART_TRANSMITER_FREE);
 	} else {
-		while(RingBuffer_IsEmpty(&comMngr.TxRBuffer) == FALSE && uartTxReady(UART_COM)){
+		while(RingBuffer_IsEmpty(&ComMngr.TxRBuffer) == FALSE && uartTxReady(UART_COM)){
 			uint8_t c;
-			RingBuffer_Pop(&comMngr.TxRBuffer,&c);
+			RingBuffer_Pop(&ComMngr.TxRBuffer,&c);
 			uartTxWrite(UART_COM, c);
 		}
 	}
@@ -78,14 +81,14 @@ void onTxFree(void* unused){
 // Send any kind of data to UART buffer, enables Tx callback
 // @param data		: ptr to data
 // @param dataSize	: size of data in Bytes
-void sendData(const void* data,const uint16_t dataSize)
+void ComMngr_SendData(communicationManager_t* cm, const void* data, const uint16_t dataSize)
 {
 	// cast to uint8_t buffer array
 	uint8_t* dataBuffer = (uint8_t*)data;
 
 	// insert to uart buffer
 	for(uint16_t i = 0; i < dataSize;i++){
-		RingBuffer_Insert(&comMngr.TxRBuffer, dataBuffer++);
+		RingBuffer_Insert(&cm->TxRBuffer, dataBuffer++);
 	}
 
 	// Enable callback interrupt
@@ -94,10 +97,10 @@ void sendData(const void* data,const uint16_t dataSize)
 }
 
 // Send single byte to UART buffer, enables Tx callback
-void sendByte(const uint8_t c)
+void ComMngr_SendByte(communicationManager_t* cm, const uint8_t c)
 {
 	// insert byte to UART buffer
-	RingBuffer_Insert(&comMngr.TxRBuffer, &c);
+	RingBuffer_Insert(&cm->TxRBuffer, &c);
 
 	// Enable callback interrupt
 	uartCallbackSet(UART_COM, UART_TRANSMITER_FREE,onTxFree,NULL);
@@ -106,45 +109,45 @@ void sendByte(const uint8_t c)
 
 
 // Checks for pending messages on the UART Rx buffer and parses the message
-void handleMessages()
+void ComMngr_HandleMessages(communicationManager_t* cm)
 {
 	uint8_t c;
 
 	// if no messages pending, return
-	if (comMngr.bPendingMsg == FALSE) return;
+	if (cm->bPendingMsg == FALSE) return;
 
 	//While Rx buffer not empty
-	while(RingBuffer_IsEmpty(&comMngr.RxRBuffer) == FALSE)
+	while(RingBuffer_IsEmpty(&cm->RxRBuffer) == FALSE)
 	{
 		// get byte
-		RingBuffer_Pop(&comMngr.RxRBuffer,&c);
+		RingBuffer_Pop(&cm->RxRBuffer,&c);
 
 		// if \n: parse the command
 		if(c == CHAR_TERMINATOR)
 		{
 			// append terminator
-			comMngr.cmdBuffer[comMngr.cmdSize] = CHAR_TERMINATOR;
-			comMngr.cmdSize++;
+			cm->cmdBuffer[cm->cmdSize] = CHAR_TERMINATOR;
+			cm->cmdSize++;
 			// parse command
-			parseCommand(comMngr.cmdBuffer, comMngr.cmdSize);
-			comMngr.cmdSize = 0;
+			ComMngr_ParseCommand(cm,cm->cmdBuffer,cm->cmdSize);
+			cm->cmdSize = 0;
 		// else append char to the command buffer
 		} else {
 			// check overflow
-			if (comMngr.cmdSize >= CMD_BUFFER_SIZE){
+			if (cm->cmdSize >= CMD_BUFFER_SIZE){
 				LOG_WARNING("CMD buffer overflow");
 				break;
 			}
 			// append char
-			comMngr.cmdBuffer[comMngr.cmdSize] = c;
-			comMngr.cmdSize++;
+			cm->cmdBuffer[cm->cmdSize] = c;
+			cm->cmdSize++;
 		}
 	}
 }
 
 
 // Parses the full command line
-void parseCommand(const uint8_t* cmd,const uint8_t size)
+void ComMngr_ParseCommand(communicationManager_t* cm, const uint8_t* cmd,const uint8_t size)
 {
 	if (size == 0) return;
 	//ToDo:Validate data
@@ -153,9 +156,9 @@ void parseCommand(const uint8_t* cmd,const uint8_t size)
 	case CMD_HELLO:
 		LOG_INFO("Server says hello!");
 		// send acknowledge
-		sendByte(CMD_ACK);
-		sendByte(CHAR_RETURN_CARRY);
-		sendByte(CHAR_TERMINATOR);
+		ComMngr_SendByte(cm, CMD_ACK);
+		ComMngr_SendByte(cm, CHAR_RETURN_CARRY);
+		ComMngr_SendByte(cm, CHAR_TERMINATOR);
 		break;
 	case CMD_ACK:
 		LOG_INFO("Server acknowledge!");
@@ -170,20 +173,11 @@ void parseCommand(const uint8_t* cmd,const uint8_t size)
 		bEnableSendParams = FALSE;
 		break;
 	case CMD_UPDATE_RTC:
-		//ToDo:Validate data
-		// year is uint16_t
-		//rtc.year = (*(uint16_t*)&cmd[1]);
-		//rtc.month = cmd[3];
-		//rtc.mday = cmd[4];
-		//rtc.wday = cmd[5];
-		//rtc.hour = cmd[6];
-		//rtc.min = cmd[7];
-		//rtc.sec = cmd[8];
-		//bUpdateRtc = TRUE;
+		//ToDo
+		break;
 	case CMD_REQ_CYCLE_SAMPLES:
 		bEnableSendSamples = TRUE;
 		break;
-
 	default:
 		LOG_INFO("command ID Unknown!");
 		break;
@@ -194,43 +188,43 @@ void parseCommand(const uint8_t* cmd,const uint8_t size)
 // Sends one sample to the webServer
 // [commandID, count, maxSample, v, i, \n]
 // Eg.:[S, 12, 128, 220.0, 10.0]
-void sendSample(const sample_t s,const uint16_t count)
+void ComMngr_SendSample(communicationManager_t* cm, const sample_t sample,const uint16_t nSample)
 {
 	// Identifier
-	sendByte(CMD_SENDING_CYCLE_SAMPLE);
+	ComMngr_SendByte(cm,CMD_SENDING_CYCLE_SAMPLE);
 	// sample number
-	sendData(&(count),sizeof(uint16_t));
+	ComMngr_SendData(cm,&(nSample),sizeof(uint16_t));
 	// v
-	sendData(&(s.v),sizeof(float));
+	ComMngr_SendData(cm,&(sample.v),sizeof(float));
 	// i
-	sendData(&(s.i),sizeof(float));
+	ComMngr_SendData(cm,&(sample.i),sizeof(float));
 	// terminator
-	sendByte(CHAR_RETURN_CARRY);
-	sendByte(CHAR_TERMINATOR);
+	ComMngr_SendByte(cm, CHAR_RETURN_CARRY);
+	ComMngr_SendByte(cm, CHAR_TERMINATOR);
 }
 
 
 // Sends the calculated parameters to the webServer each second
-// [commandID, Vrms, Irms, CosPhi, \n]
+// [commandID, Vrms, Irms, Phi, \n]
 // Eg.:[P, 220.0, 5.0, -7.0]
-void sendLineParameters()
+void ComMngr_SendLineParams(communicationManager_t* cm)
 {
 	// Identifier
-	sendByte(CMD_SENDING_PARAMS);
+	ComMngr_SendByte(cm, CMD_SENDING_PARAMS);
 	// Vrms
-	sendData(&computedParams.Vrms,sizeof(float));
+	ComMngr_SendData(cm, &computedParams.Vrms, sizeof(float));
 	// Irms
-	sendData(&computedParams.Irms,sizeof(float));
+	ComMngr_SendData(cm, &computedParams.Irms, sizeof(float));
 	// Cos Phi
-	sendData(&computedParams.CosPhi,sizeof(float));
-
+	ComMngr_SendData(cm, &computedParams.Phi, sizeof(float));
 	// terminator
-	sendByte(CHAR_RETURN_CARRY);
-	sendByte(CHAR_TERMINATOR);
+	ComMngr_SendByte(cm, CHAR_RETURN_CARRY);
+	ComMngr_SendByte(cm, CHAR_TERMINATOR);
 }
 
 // Clears the energy [kWh] counter
 void clearEnergy()
 {
+	//ToDo
 	return;
 }

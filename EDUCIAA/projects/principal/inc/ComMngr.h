@@ -1,5 +1,5 @@
-#ifndef _PHASOR_COMMUNICATION_H_
-#define _PHASOR_COMMUNICATION_H_
+#ifndef _PHASOR_COMMANAGER_H_
+#define _PHASOR_COMMANAGER_H_
 
 #include <stdint.h>
 #include <sapi.h>
@@ -8,25 +8,17 @@
 #include "utils.h"
 
 // --- DEFINITIONS --- //
-#define UART_BUFFER_TX_SIZE 64
-#define UART_BUFFER_RX_SIZE 64
-#define CMD_BUFFER_SIZE 32
+#define UART_BUFFER_TX_SIZE 256
+#define UART_BUFFER_RX_SIZE 32
+#define CMD_BUFFER_SIZE 16
 
+
+//UART ports
 #define UART_COM UART_232
 #define UART_DEBUG UART_USB
 
+//Raw samples to send per request
 #define N_SAMPLES_TO_SEND 40
-
-// --- GLOBAL FLAGS --- //
-static bool_t bEnableSendParams;
-volatile bool_t bEnableSendSamples;
-
-// --- EXTERN GLOBAL VARIABLES --- //
-extern params_t currentParams,computedParams;
-
-//static bool_t bUpdateRtc;
-
-
 
 // -- DATA STRUCTURES --- //
 
@@ -46,8 +38,7 @@ typedef enum commandsID {
 	CHAR_END_STRING = '\0'
 } commandsID_t;
 
-
-// All communications variables used
+// Communication Manager Data Structure
 typedef struct{
 	// Rx and Tx buffers
 	RINGBUFF_T TxRBuffer,RxRBuffer;
@@ -63,6 +54,17 @@ typedef struct{
 }communicationManager_t;
 
 
+// --- GLOBAL FLAGS --- //
+extern bool_t bEnableSendParams;
+extern volatile bool_t bEnableSendSamples;
+
+// --- EXTERN GLOBAL VARIABLES --- //
+extern params_t currentParams,computedParams;
+
+
+
+
+
 
 // --- FUNCTIONS DEFINITIONS --- //
 
@@ -71,17 +73,17 @@ void onTxFree(void* unused);
 void onRx(void* unused);
 void onRxOverflow();
 
-
 // Comunication functions
-void comunicationManagerConfig();
-void handleMessages();
-void parseCommand(const uint8_t* cmd,const uint8_t size);
-void sendData(const void* data,const uint16_t dataSize);
-void sendByte(const uint8_t c);
+void ComMngr_Init(communicationManager_t* cm);
+void ComMngr_HandleMessages(communicationManager_t* cm);
+void ComMngr_ParseCommand(communicationManager_t* cm, const uint8_t* cmd,const uint8_t size);
+void ComMngr_SendData(communicationManager_t* cm,const void* data,const uint16_t dataSize);
+void ComMngr_SendByte(communicationManager_t* cm, const uint8_t c);
 
 // FUNCTIONS
-void sendSample(const sample_t s,const uint16_t count);
-void sendLineParameters();
+void ComMngr_SendSample(communicationManager_t* cm, const sample_t s,const uint16_t count);
+void ComMngr_SendLineParams(communicationManager_t* cm);
+
 void clearEnergy();
 
-#endif /* _PHASOR_COMMUNICATION_H_ */
+#endif /* _PHASOR_COMMANAGER_H_ */
