@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <sapi.h>
 #include <ring_buffer.h>
+#include "ComMngr.h"
 #include "digitalization.h"
 #include "utils.h"
 
@@ -15,10 +16,17 @@
 
 //UART ports
 #define UART_COM UART_232
+//#define UART_COM UART_USB // debug
 #define UART_DEBUG UART_USB
 
 //Raw samples to send per request
 #define N_SAMPLES_TO_SEND 40
+
+// --- GLOBAL VARIABLES --- //
+
+extern params_t params;
+extern volatile bool_t bEnableSendSamples;
+
 
 // -- DATA STRUCTURES --- //
 
@@ -53,18 +61,7 @@ typedef struct{
 	bool_t bPendingMsg;
 }communicationManager_t;
 
-
-// --- GLOBAL FLAGS --- //
-extern bool_t bEnableSendParams;
-extern volatile bool_t bEnableSendSamples;
-
-// --- EXTERN GLOBAL VARIABLES --- //
-extern params_t currentParams,computedParams;
-
-
-
-
-
+extern communicationManager_t ComMngr;
 
 // --- FUNCTIONS DEFINITIONS --- //
 
@@ -80,10 +77,10 @@ void ComMngr_ParseCommand(communicationManager_t* cm, const uint8_t* cmd,const u
 void ComMngr_SendData(communicationManager_t* cm,const void* data,const uint16_t dataSize);
 void ComMngr_SendByte(communicationManager_t* cm, const uint8_t c);
 
-// FUNCTIONS
-void ComMngr_SendSample(communicationManager_t* cm, const sample_t s,const uint16_t count);
-void ComMngr_SendLineParams(communicationManager_t* cm);
+void ComMngr_SendSample(communicationManager_t* cm,  sample_t const *const s,const uint16_t count);
+void ComMngr_SendParams(communicationManager_t* cm, params_t const *const p);
 
+//ToDo:
 void clearEnergy();
 
 #endif /* _PHASOR_COMMANAGER_H_ */

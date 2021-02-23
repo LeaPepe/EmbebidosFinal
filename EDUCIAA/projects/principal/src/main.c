@@ -1,13 +1,16 @@
 #include "main.h"
 
-// Global variables
-static const tick_t tickTimeMS = 1; // Sample tick Time in milliseconds
+// --- GLOBAL VARIABLES --- //
 
-extern peakData_t peakData;
-extern communicationManager_t ComMngr;
+static const tick_t timeTick = 1000; // Sample tick Time in us
 
-// flags
-bool_t bRdyToSendParams;
+params_t params;
+
+communicationManager_t ComMngr;
+
+volatile bool_t bEnableSendSamples;
+
+uint16_t sampleCount; // used when sending samples to server
 
 
 
@@ -20,33 +23,24 @@ int main(void)
 	// Communication initialization
 	ComMngr_Init(&ComMngr);
 
-	// ADC enable
-	adcConfig( ADC_ENABLE );
+	// ADC initialization
+	ADC_Init();
 
 	// Time initialization
-	cyclesCounterConfig(EDU_CIAA_NXP_CLOCK_SPEED);
-	cyclesCounterReset();
-
+	Time_Init();
 
 	// Tick 1ms initialization
-	tickInit(1);
+	tickInit(timeTick/1000);
 	tickCallbackSet(onTickUpdate,NULL);
 
-	// Initialize some parameters
-	uartWriteString(UART_DEBUG,"Begining! ... \r\n");
-	bEnableSendParams = TRUE;
+	// Initialize flags and other variables
 	bEnableSendSamples = FALSE;
-	bRdyToSendParams = FALSE;
-
-	PeakDetector_Init(&peakData);
-
-
-	// initialize times and needed values
-	clearCurrentParams();
 	sampleCount = 0;
 
+	// Peak detector data initialization
+	Params_Init(&params);
 
-
+	LOG_INFO("Begining! ... \r\n");
 
 	// --- MAIN LOOP --- //
 	while (1) {
@@ -56,10 +50,10 @@ int main(void)
 
 
 		// Send line data to webserver (every 1 second)
-		if(bRdyToSendParams == TRUE && bEnableSendParams == TRUE)
+		if(params.bEnableSend == TRUE && params.bRdyToSend == TRUE)
 		{
-			ComMngr_SendLineParams(&ComMngr);
-			bRdyToSendParams = FALSE;
+			ComMngr_SendParams(&ComMngr,&params);
+			params.bRdyToSend = FALSE;
 		}
 	}
    
@@ -71,58 +65,41 @@ int main(void)
 void onTickUpdate(void* UNUSED)
 {
 	// Tick watchdog time start
-	float timeStartTick = cyclesCounterToUs(cyclesCounterRead()); // Homemade Watchdog
+	float timeStartTick = Time_get(); // Homemade Watchdog
 
+	sample_t sample;
 
 	// read values
-	sample_t sample;
-	uint16_t logicV = adcRead(CH1);
-	uint16_t logicI = adcRead(CH2);
-	sample.v = getVoltage(logicV);
-	sample.i = getCurrent(logicI);
+	Sample_Read(&sample);
 
-	// calculate on the fly params
-	currentParams.Vrms += sample.v * sample.v;
-	currentParams.Irms += sample.i * sample.i;
-
-	PeakDetector_InputData(&peakData,  &sample);
-
-	// each second tasks
-	if(tickRead() % 1000 == 0)
-	{
-		// calculate rest of params
-		currentParams.Vrms /= 1000;
-		currentParams.Irms /= 1000;
-
-		computedParams.Vrms = sqrt(currentParams.Vrms);
-		computedParams.Irms = sqrt(currentParams.Irms);
-		computedParams.Phi = PeakDetector_getAvgPhi(&peakData);
-
-		// raise flag to send
-		bRdyToSendParams = TRUE;
-
-		// restart values
-		PeakDetector_Reset(&peakData);
-		currentParams.Vrms = 0.0;
-		currentParams.Irms = 0.0;
-		currentParams.Phi = 0.0;
-	}
-
-	// Send raw samples each tick (if requested)
+	// Send raw sample each tick (if requested)
 	if (bEnableSendSamples == TRUE){
 		if(sampleCount >= N_SAMPLES_TO_SEND){
 			sampleCount = 0;
 			bEnableSendSamples = FALSE;
 		} else {
-			ComMngr_SendSample(&ComMngr, sample, sampleCount);
+			ComMngr_SendSample(&ComMngr, &sample, sampleCount);
 			sampleCount++;
 		}
 	}
 
-	// Tick watchdog check
-	float timeElapsedTick = cyclesCounterToUs(cyclesCounterRead()) - timeStartTick;
 
-	if(timeElapsedTick >= tickTimeMS*1000)
+	// inside the integral: sum of v^2, i^2
+	// also peak detector input data
+	Params_ComputeSample(&params,&sample);
+
+	// each second
+	if(tickRead() % 1000 == 0)
+	{
+		// outside integral: 1/T
+		// also set RdyToSend flag
+		Params_ComputeParams(&params);
+		// resets the count, stores finished value to send
+		Params_Reset(&params);
+	}
+
+	// Tick watchdog check
+	if(Time_getEllapsed(timeStartTick, Time_get()) >= timeTick)
 	{
 		LOG_WARNING("Tick callback time is grater than tick time interval");
 	}

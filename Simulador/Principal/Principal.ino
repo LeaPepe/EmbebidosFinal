@@ -47,7 +47,7 @@ void loop()
   DAC2.setVoltage(v, false);
 
   // Current (analog reads)
-  int phaseOffset =  10 * (analogRead(A1) - 512); // A1 for time offset in ms
+  int phaseOffset =  8 * (analogRead(A1) - 512); // A1 for time offset in ms
   float sineA = sin(LINE_FREQ_ANG_US_DEG * (micros() - phaseOffset)); // Sine(2pif(t-offset))
   int i = 2048 + (int)((2000.0f / 1024.0f) * analogRead(A0) * sineA); // A0 for amplitude
   DAC1.setVoltage(i, false);

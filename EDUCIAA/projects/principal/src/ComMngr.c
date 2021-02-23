@@ -1,11 +1,6 @@
 #include "ComMngr.h"
 
-// Global Flags
-communicationManager_t ComMngr;
-
-// Global Flags
-bool_t bEnableSendParams;
-volatile bool_t bEnableSendSamples;
+params_t params;
 
 // -- COMUNICATION INITIALIZATIONS -- //
 
@@ -167,10 +162,10 @@ void ComMngr_ParseCommand(communicationManager_t* cm, const uint8_t* cmd,const u
 		clearEnergy();
 		break;
 	case CMD_REQ_PARAMS_ON:
-		bEnableSendParams = TRUE;
+		params.bEnableSend = TRUE;
 		break;
 	case CMD_REQ_PARAMS_OFF:
-		bEnableSendParams = FALSE;
+		params.bEnableSend = FALSE;
 		break;
 	case CMD_UPDATE_RTC:
 		//ToDo
@@ -188,16 +183,16 @@ void ComMngr_ParseCommand(communicationManager_t* cm, const uint8_t* cmd,const u
 // Sends one sample to the webServer
 // [commandID, count, maxSample, v, i, \n]
 // Eg.:[S, 12, 128, 220.0, 10.0]
-void ComMngr_SendSample(communicationManager_t* cm, const sample_t sample,const uint16_t nSample)
+void ComMngr_SendSample(communicationManager_t* cm,  sample_t const *const s,const uint16_t nSample)
 {
 	// Identifier
 	ComMngr_SendByte(cm,CMD_SENDING_CYCLE_SAMPLE);
 	// sample number
 	ComMngr_SendData(cm,&(nSample),sizeof(uint16_t));
 	// v
-	ComMngr_SendData(cm,&(sample.v),sizeof(float));
+	ComMngr_SendData(cm,&s->v,sizeof(float));
 	// i
-	ComMngr_SendData(cm,&(sample.i),sizeof(float));
+	ComMngr_SendData(cm,&s->i,sizeof(float));
 	// terminator
 	ComMngr_SendByte(cm, CHAR_RETURN_CARRY);
 	ComMngr_SendByte(cm, CHAR_TERMINATOR);
@@ -207,16 +202,16 @@ void ComMngr_SendSample(communicationManager_t* cm, const sample_t sample,const 
 // Sends the calculated parameters to the webServer each second
 // [commandID, Vrms, Irms, Phi, \n]
 // Eg.:[P, 220.0, 5.0, -7.0]
-void ComMngr_SendLineParams(communicationManager_t* cm)
+void ComMngr_SendParams(communicationManager_t* cm, params_t const *const p)
 {
 	// Identifier
 	ComMngr_SendByte(cm, CMD_SENDING_PARAMS);
 	// Vrms
-	ComMngr_SendData(cm, &computedParams.Vrms, sizeof(float));
+	ComMngr_SendData(cm, &p->computed.Vrms, sizeof(float));
 	// Irms
-	ComMngr_SendData(cm, &computedParams.Irms, sizeof(float));
+	ComMngr_SendData(cm, &p->computed.Irms, sizeof(float));
 	// Cos Phi
-	ComMngr_SendData(cm, &computedParams.Phi, sizeof(float));
+	ComMngr_SendData(cm, &p->computed.Phi, sizeof(float));
 	// terminator
 	ComMngr_SendByte(cm, CHAR_RETURN_CARRY);
 	ComMngr_SendByte(cm, CHAR_TERMINATOR);
