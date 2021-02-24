@@ -1,6 +1,6 @@
 #include "PeakDetector.h"
 
-
+// Initialize the peak data structure
 void PeakDetector_Init(peakData_t* pd)
 {
 	// its a max detector, so big negative number to init. ToDo: Init with negative infinite value.
@@ -14,6 +14,7 @@ void PeakDetector_Init(peakData_t* pd)
 	PeakDetector_Reset(pd);
 }
 
+// inputs sample to the structure and checks for peaks
 void PeakDetector_InputData(peakData_t* pd,  sample_t const * const s)
 {
 	// cycle data
@@ -26,39 +27,35 @@ void PeakDetector_InputData(peakData_t* pd,  sample_t const * const s)
 	pd->peakSamples[0].v = s->v;
 	pd->peakSamples[0].i = s->i;
 
-	// Detect peaks
-	// V
+	// Detect peaks.
+	// V. If detected, wait until finished
 	if(pd->peakSamples[1].v >= pd->peakSamples[0].v &&
-			pd->peakSamples[1].v > pd->peakSamples[2].v)
+			pd->peakSamples[1].v > pd->peakSamples[2].v && pd->bPeakDetectedV == FALSE)
 	{
 		// ToDo: You can compute frequency here too as time between peaks!
 		pd->peakTimeV = Time_get();
 		pd->bPeakDetectedV = TRUE;
 	}
 
-	// I
+	// I. Only if V peak was detected
 	if(pd->peakSamples[1].i > pd->peakSamples[0].i &&
-			pd->peakSamples[1].i > pd->peakSamples[2].i & pd->bPeakDetectedV == TRUE)
+			pd->peakSamples[1].i > pd->peakSamples[2].i && pd->bPeakDetectedV == TRUE)
 	{
 		// ToDo: You can compute frequency here too as time between peaks!
 		pd->peakTimeI = Time_get();
 		pd->bPeakDetectedI = TRUE;
 	}
+
 	// if both detected, compute phi
 	if (pd->bPeakDetectedV == TRUE && pd->bPeakDetectedI == TRUE)
 	{
 		float timeBetweenPeaks = Time_getEllapsed(pd->peakTimeV,pd->peakTimeI);
-
+		// ms to deg
 		pd->phi = getPhiFromTime(timeBetweenPeaks);
-		// if no phi data, then avg = phi
-		if (pd->phiCount == 0)
-		{
-			pd->avgPhi = pd->phi;
-		// else sum to the avg amount
-		} else {
-			pd->avgPhi = ((pd->avgPhi * (float)pd->phiCount) + pd->phi)
-					/ (float)(pd->phiCount +1);
-		}
+
+		// add to sum
+		pd->sumPhi += pd->phi;
+		// add 1 to count
 		pd->phiCount++;
 
 		// reset the flags
@@ -68,19 +65,23 @@ void PeakDetector_InputData(peakData_t* pd,  sample_t const * const s)
 }
 
 
+
+// translate time to deg, knowing that 20ms is a full cycle
 float getPhiFromTime(float t)
 {
 	float retVal =1.0f;
-	if(t >= 10000.0f)
+
+	// limits -180 < phi < 180
+	while(t >= 10000.0f)
 	{
-		t = t - 10000.0f;
-		retVal*=-1;
+		t = t - 20000.0f;
 	}
 
-	retVal *= (t*360.0f)/20000.0f;
-	return retVal;
+	// time to deg
+	return (t*360.0f)/20000.0f;
 }
 
+// resets the flags and counts
 void PeakDetector_Reset(peakData_t* pd)
 {
 	// reset the flags
@@ -89,10 +90,12 @@ void PeakDetector_Reset(peakData_t* pd)
 
 	// reset the count
 	pd->phiCount = 0;
+	pd->sumPhi = 0;
 	// no need to reset anything else
 }
 
+// computes the avg phi
 float PeakDetector_getAvgPhi(peakData_t* pd)
 {
-	return pd->avgPhi;
+	return pd->sumPhi / (float)pd->phiCount;
 }

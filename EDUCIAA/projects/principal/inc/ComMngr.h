@@ -9,15 +9,18 @@
 #include "utils.h"
 
 // --- DEFINITIONS --- //
+
+// buffer sizes
 #define UART_BUFFER_TX_SIZE 256
 #define UART_BUFFER_RX_SIZE 32
 #define CMD_BUFFER_SIZE 16
 
 
 //UART ports
-#define UART_COM UART_232
-//#define UART_COM UART_USB // debug
-#define UART_DEBUG UART_USB
+#define UART_COM UART_232 // 232 for WebServer communication
+#define UART_DEBUG UART_USB // USB for Debugging
+//#define UART_COM UART_USB // debug WebServer communication
+
 
 //Raw samples to send per request
 #define N_SAMPLES_TO_SEND 40

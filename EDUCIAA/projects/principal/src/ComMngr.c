@@ -1,6 +1,6 @@
 #include "ComMngr.h"
 
-params_t params;
+extern params_t params;
 
 // -- COMUNICATION INITIALIZATIONS -- //
 
@@ -49,7 +49,7 @@ void onRx(void* unused){
 
 
 // Overflow function callback
-// In a future, ask for more space
+// In a future, ask for more space maybe
 void onRxOverflow(){
 	LOG_WARNING("Rx buffer overflow, message overwritten!");
 }
@@ -91,6 +91,7 @@ void ComMngr_SendData(communicationManager_t* cm, const void* data, const uint16
 	uartSetPendingInterrupt(UART_COM);
 }
 
+
 // Send single byte to UART buffer, enables Tx callback
 void ComMngr_SendByte(communicationManager_t* cm, const uint8_t c)
 {
@@ -103,7 +104,7 @@ void ComMngr_SendByte(communicationManager_t* cm, const uint8_t c)
 }
 
 
-// Checks for pending messages on the UART Rx buffer and parses the message
+// Checks for pending messages on the UART Rx buffer and parses the message to command
 void ComMngr_HandleMessages(communicationManager_t* cm)
 {
 	uint8_t c;
@@ -181,7 +182,7 @@ void ComMngr_ParseCommand(communicationManager_t* cm, const uint8_t* cmd,const u
 
 
 // Sends one sample to the webServer
-// [commandID, count, maxSample, v, i, \n]
+// [commandID, sampleCount, v, i, \n]
 // Eg.:[S, 12, 128, 220.0, 10.0]
 void ComMngr_SendSample(communicationManager_t* cm,  sample_t const *const s,const uint16_t nSample)
 {

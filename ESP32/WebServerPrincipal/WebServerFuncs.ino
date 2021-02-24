@@ -9,15 +9,17 @@ void serverInit()
 // Hook all entries in the http page
 void hookEntries()
 {
-  // Root entry
+  // on Root entry
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/index.html");
   });
 
+  // on root/params request
   server.on("/params", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/plain", stringParams.c_str());
   });
 
+  // on root/samples request
   server.on("/samples", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/plain", stringSamples.c_str());
   });

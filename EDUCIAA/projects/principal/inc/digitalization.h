@@ -8,21 +8,22 @@
 
 // --- DEFINITIONS --- //
 
+
+// analog limits and definitions
 #define ANALOG_MAX_VOLTAGE 318.4f
 #define ANALOG_MAX_CURRENT 15.0f
 
 #define ANALOG_PRESITION 10
 #define ANALOG_MAX_VALUE 1024
 
-// in c++ could be a static member in sample_t
-extern uint16_t sampleCount; // used when sending samples to server
+
 
 // -- DATA STRUCTURES --- //
 
 
 #ifndef _PHASOR_SAMPLE_TYPE_
 #define _PHASOR_SAMPLE_TYPE_
-
+// Sample data structure
 typedef struct{
 	float v;
 	float i;
@@ -33,6 +34,7 @@ typedef struct{
 #ifndef _PHASOR_PEAKDATA_TYPE_
 #define _PHASOR_PEAKDATA_TYPE_
 
+// Peak Data computation data structure
 typedef struct{
 	// Data to compute peaks
 	sample_t peakSamples[3];
@@ -42,19 +44,20 @@ typedef struct{
 	bool_t bPeakDetectedV,bPeakDetectedI;
 
 	// the last phi, and avg phi
-	float phi,avgPhi;
+	float phi,sumPhi;
 	uint16_t phiCount;
 }peakData_t;
 
 #endif
 
+// Line parameters data structure
 typedef struct{
 	float Vrms;
 	float Irms;
 	float Phi;
 }lineParams_t;
 
-
+// Parameter manager data structure
 typedef struct{
 	lineParams_t current,computed;
 	peakData_t peakData;

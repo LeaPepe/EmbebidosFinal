@@ -10,17 +10,17 @@
 
 #ifndef _PHASOR_SAMPLE_TYPE_
 #define _PHASOR_SAMPLE_TYPE_
-
+// Sample data structure
 typedef struct{
 	float v;
 	float i;
 }sample_t;
 
 #endif
-// peak detector data structure
+
 #ifndef _PHASOR_PEAKDATA_TYPE_
 #define _PHASOR_PEAKDATA_TYPE_
-
+// peak detector data structure
 typedef struct{
 	// Data to compute peaks
 	sample_t peakSamples[3];
@@ -30,11 +30,12 @@ typedef struct{
 	bool_t bPeakDetectedV,bPeakDetectedI;
 
 	// the last phi, and avg phi
-	float phi,avgPhi;
+	float phi,sumPhi;
 	uint16_t phiCount;
 }peakData_t;
 
 #endif
+
 
 
 //public

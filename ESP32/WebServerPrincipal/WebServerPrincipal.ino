@@ -9,14 +9,15 @@
 #define RXD2 16
 #define TXD2 17
 
-String inputString = "";         // a String to hold incoming data
-bool stringComplete = false;  // whether the string is complete
-
+// JSON Data to WebServer
 StaticJsonDocument<300> docParams; // JSON to send data to http page
 StaticJsonDocument<2000> docSamples; // JSON to send data to http page
 String stringParams, stringSamples;
+
+// Time and count used to request
 unsigned long timeStart;
 uint16_t count = 0;
+
 // Create Webserver in port 80
 AsyncWebServer server(80);
 

@@ -3,6 +3,7 @@
 samples_t samples;
 params_t parameters;
 
+// Samples initialization
 void initSamples()
 {
   for(uint8_t i = 0; i < N_SAMPLES_TO_SEND; i++)

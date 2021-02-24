@@ -1,11 +1,17 @@
+
+// Commands sizes
 #define SAMPLE_CMD_SIZE 11
 #define PARAMS_CMD_SIZE 14
 
+// Amount of raw samples sended
 #define N_SAMPLES_TO_SEND 40
+
+// Command buffer
 #define MAX_CMD_LENGTH 30
 char cmdBuffer[MAX_CMD_LENGTH];
 uint16_t cmdBufferSize;
 
+// Sample data structure
 typedef struct{
   // Rx and Tx buffers
   float v[N_SAMPLES_TO_SEND];
@@ -14,6 +20,7 @@ typedef struct{
   uint16_t count;
 }samples_t;
 
+// Parameters data structure
 typedef struct{
   float Vrms;
   float Irms;
@@ -23,6 +30,7 @@ typedef struct{
 
 extern samples_t samples;
 extern params_t parameters;
+
 // Serial Communication commands Identifications
 typedef enum commandsID {
   CMD_HELLO = 'H',        // send hello to server
@@ -39,12 +47,15 @@ typedef enum commandsID {
   CHAR_END_STRING = '\0'
 } commandsID_t;
 
+
+// -- Functions -- // 
+
+// Different commands used
 void requestSamples()
 {
   Serial2.print(char(CMD_REQ_CYCLE_SAMPLES));
   Serial2.print("\r\n");
 }
-
 
 void serialAck()
 {
@@ -58,6 +69,7 @@ void serialHello()
   Serial2.print("\r\n");
 }
 
+// UART handle messages
 void handleUart()
 {
   while (Serial2.available()) {
@@ -81,13 +93,14 @@ void handleUart()
   }
 }
 
+
+// Command parse
 void parseCmd()
 {
   if (cmdBufferSize <= 1) return;
   //ToDo:Validate data
   switch (cmdBuffer[0])
   {
-    
     case CMD_HELLO:
       Serial.println("CIAA says hello!");
       // send acknowledge
@@ -109,7 +122,7 @@ void parseCmd()
   }
 }
 
-
+// Parse input sample
 void parseSampleCmd()
 {
   if (cmdBufferSize < SAMPLE_CMD_SIZE)
@@ -134,7 +147,7 @@ void parseSampleCmd()
 }
 
 
-
+// Parse parameters sample
 void parseParamsCmd()
 {
   if (cmdBufferSize < PARAMS_CMD_SIZE)
